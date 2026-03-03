@@ -1,5 +1,6 @@
 # Databricks
 .databricks
+databricks.yml
 
 # Python
 __pycache__/

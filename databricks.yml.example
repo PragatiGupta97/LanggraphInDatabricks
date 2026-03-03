@@ -1,6 +1,8 @@
 # This is a Databricks asset bundle definition for LanggraphToDatabricks.
 # The Databricks extension requires databricks.yml configuration file.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+#
+# Copy this file to databricks.yml and update with your workspace details.
 
 bundle:
   name: LanggraphToDatabricks
@@ -10,10 +12,10 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://adb-7405609163114833.13.azuredatabricks.net
+      host: https://your-databricks-workspace-url.azuredatabricks.net
 
   ## Optionally, there could be 'staging' or 'prod' targets here.
   #
   # prod:
   #   workspace:
-  #     host: https://adb-7405609163114833.13.azuredatabricks.net
+  #     host: https://your-databricks-workspace-url.azuredatabricks.net
