@@ -65,3 +65,4 @@ dmypy.json
 # Databricks specific
 databricks.log
 .env
+sql_workflow_agent.py
