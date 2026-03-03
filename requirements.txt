@@ -1,0 +1,28 @@
+# Core dependencies for SQL Workflow with LangGraph on Databricks
+
+# LangChain and LangGraph
+langchain-core>=0.3.0
+langgraph>=0.2.0
+langgraph-checkpoint>=1.0.0
+
+# Databricks
+databricks-sdk>=0.20.0
+databricks-langchain>=0.1.0
+
+# MLflow
+mlflow>=2.10.0
+
+# OpenAI
+openai>=1.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+backoff>=2.2.0
+pydantic>=2.0.0
+
+# Optional: For local testing with OpenAI
+langchain-openai>=0.1.0
+
+# Optional: For development and testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
