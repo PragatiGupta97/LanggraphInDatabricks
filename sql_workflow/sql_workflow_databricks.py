@@ -35,7 +35,6 @@ For MLflow deployment:
     )
 """
 
-import json
 from typing import Generator
 from uuid import uuid4
 
@@ -70,6 +69,10 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
         Args:
             model: The foundation model endpoint name to use
         """
+        # Enable automatic tracing for LangGraph
+        import mlflow
+        mlflow.langchain.autolog()
+        
         self.model = model
         # WorkspaceClient is only needed when deployed to Databricks
         # For local testing, we can skip this initialization
@@ -144,7 +147,18 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
             # Accumulate state updates and stream node-specific results
             for node_name, node_output in events.items():
                 if node_output is not None and isinstance(node_output, dict):
-                    final_state.update(node_output)
+                    # Properly accumulate messages instead of replacing them
+                    if "messages" in node_output:
+                        if "messages" not in final_state:
+                            final_state["messages"] = []
+                        final_state["messages"].extend(node_output["messages"])
+                        # Update other fields
+                        for key, value in node_output.items():
+                            if key != "messages":
+                                final_state[key] = value
+                    else:
+                        final_state.update(node_output)
+                    
                     yield from self._stream_node_results(node_name, node_output)
 
             # Extract new messages from node outputs
@@ -174,11 +188,11 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
                 # Stream error information
                 yield from self._stream_error_results(final_state)
             else:
-                # Stream final formatted summary
+                # Stream final SQL query only
                 result_text = self._format_final_results(final_state)
                 yield ResponsesAgentStreamEvent(
                     type="response.output_item.done",
-                    item=self.create_text_output_item(text=result_text, id=str(uuid4())),
+                    item=self.create_text_output_item(result_text, str(uuid4())),
                 )
 
     def _stream_node_results(
@@ -206,7 +220,7 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
         messages = node_output.get("messages", [])
 
         # Stream SQL generation results immediately
-        if node_name == "generate_sql":
+        if node_name == "sql_generator":
             generated_sql = get_generated_sql(messages)
             if generated_sql:
                 confidence = get_confidence_score(messages)
@@ -217,7 +231,7 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
                 )
 
         # Stream validation results immediately
-        elif node_name == "validate_sql":
+        elif node_name == "sql_validator":
             validation_result = get_validation_result(messages)
             if validation_result:
                 is_valid = "invalid" not in validation_result.lower()
@@ -273,60 +287,26 @@ class SQLWorkflowOrchestrator(ResponsesAgent):  # type: ignore[subclass]
             state: Final workflow state
 
         Returns:
-            Formatted string with SQL query, explanation, and results
+            The generated SQL query as the primary output
         """
         from .utils.message_utils import (
-            get_confidence_score,
-            get_formatted_result,
             get_generated_sql,
-            get_query_results,
-            get_sql_explanation,
         )
-
-        result_parts = []
-
+        
         # Check for errors in messages
         if state.get("has_error"):
             messages = state.get("messages", [])
             for msg in reversed(messages):
                 if hasattr(msg, "additional_kwargs") and msg.additional_kwargs.get("is_error"):
                     error_msg = msg.additional_kwargs.get("error", msg.content)
-                    result_parts.append(f"Error: {error_msg}")
-                    return "\n".join(result_parts)
+                    return f"Error: {error_msg}"
 
         messages = state.get("messages", [])
 
-        # If we have a formatted result from the LLM, use that primarily
-        formatted_result = get_formatted_result(messages)
-        if formatted_result:
-            result_parts.append("Result:")
-            result_parts.append(formatted_result)
-            result_parts.append("")  # Add blank line
-
-        # Add generated SQL
+        # Return the generated SQL query only
         generated_sql = get_generated_sql(messages)
         if generated_sql:
-            result_parts.append("Generated SQL Query:")
-            result_parts.append("```sql")
-            result_parts.append(generated_sql)
-            result_parts.append("```")
+            return generated_sql
 
-            # Add confidence score
-            confidence = get_confidence_score(messages)
-            result_parts.append(f"\nConfidence Score: {confidence * 100:.1f}%")
-
-        # Add SQL explanation
-        sql_explanation = get_sql_explanation(messages)
-        if sql_explanation:
-            result_parts.append(f"\nExplanation:\n{sql_explanation}")
-
-        # Add raw query results only if formatted result is not available
-        if not formatted_result:
-            query_results = get_query_results(messages)
-            if query_results:
-                result_parts.append("\nQuery Results:")
-                result_parts.append("```json")
-                result_parts.append(json.dumps(query_results, indent=2))
-                result_parts.append("```")
-
-        return "\n".join(result_parts)
+        # Fallback if no SQL was generated
+        return "No SQL query was generated."

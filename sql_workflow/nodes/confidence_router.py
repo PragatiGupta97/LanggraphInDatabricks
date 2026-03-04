@@ -3,10 +3,14 @@
 Routes workflow based on confidence score (informational node).
 """
 
+import mlflow
+from mlflow.entities import SpanType
+
 from ..state.workflow_state import EnhancedSQLWorkflowState
 from ..utils.message_utils import get_confidence_score
 
 
+@mlflow.trace(span_type=SpanType.CHAIN, name="confidence_router_node")
 def confidence_router_node(state: EnhancedSQLWorkflowState) -> dict:
     """Step 3: Route based on confidence score.
 

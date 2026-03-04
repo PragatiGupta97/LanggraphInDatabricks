@@ -13,8 +13,8 @@ from langchain_core.tools import tool
 from mlflow.entities import SpanType
 
 
+@mlflow.trace(span_type=SpanType.TOOL, name="generate_sql_with_llm")
 @backoff.on_exception(backoff.expo, openai.RateLimitError)
-@mlflow.trace(span_type=SpanType.LLM, name="generate_sql")
 def _generate_sql(natural_language_query: str, schema_info: str) -> str:
     """Generate SQL from natural language using LLM."""
     prompt = f"""You are a SQL expert. Generate a safe, read-only SQL query based on this question:
@@ -71,7 +71,6 @@ Return only the raw SQL query."""
 
 
 @tool
-@mlflow.trace(name="generate_sql_query", span_type=mlflow.entities.SpanType.TOOL)
 def generate_sql_query(natural_language_query: str, schema_info: str) -> dict[str, Any]:
     """Convert natural language questions into valid SQL queries.
 

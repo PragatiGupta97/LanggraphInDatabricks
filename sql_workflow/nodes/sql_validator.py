@@ -15,7 +15,7 @@ from ..state.workflow_state import EnhancedSQLWorkflowState
 from ..utils.message_utils import get_generated_sql
 
 
-@mlflow.trace(span_type=SpanType.TOOL, name="sql_validator_node")
+@mlflow.trace(span_type=SpanType.AGENT, name="sql_validator_node")
 def sql_validator_node(state: EnhancedSQLWorkflowState) -> dict:
     """Step 5: Validate SQL for security and correctness.
 

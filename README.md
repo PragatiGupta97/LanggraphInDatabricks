@@ -91,6 +91,58 @@ Implementing `ResponsesAgent` correctly ensures:
 - ✅ **Type safety**: Strongly-typed inputs/outputs
 - ✅ **Production ready**: Built-in error handling and formatting
 
+## MLflow Tracing & Logging
+
+This project uses **MLflow autologging** for automatic LangGraph execution tracing, following [Databricks best practices](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/integrations/langgraph).
+
+### Automatic Tracing with `mlflow.langchain.autolog()`
+
+Enable once at startup to automatically capture:
+- Complete LangGraph execution flow
+- Node transitions and routing decisions
+- Tool calls and LLM interactions
+- Execution timing and performance
+
+```python
+import mlflow
+mlflow.langchain.autolog()
+```
+
+**Where it's enabled:**
+- `deploy-langgraph-to-databricks.ipynb`: Cell 4 (after imports)
+- `sql_workflow_databricks.py`: Orchestrator `__init__` method
+
+### Manual Spans for Detailed Tracking
+
+Add child spans inside nodes for granular observability:
+
+```python
+with mlflow.start_span(name="operation_name", span_type=SpanType.TOOL) as span:
+    span.set_inputs({"param": value})
+    result = perform_operation()
+    span.set_outputs({"result": result})
+```
+
+**Examples in codebase:**
+- `schema_helper.py`: Tracks schema retrieval
+- `sql_generator.py`: Tracks LLM generation and confidence parsing
+- `sql_validator.py`: Tracks SQL validation steps
+
+### Model Registration
+
+The notebook logs your agent to MLflow with:
+
+```python
+mlflow.pyfunc.log_model(
+    python_model="sql_workflow_agent.py",
+    code_paths=["sql_workflow/"],
+    pip_requirements="requirements.txt",
+    resources=[endpoints, functions]
+)
+```
+
+This packages your entire workflow for deployment with all dependencies, code, and resource references.
+
 ## Quick Start
 
 ### 1. Clone the Repository

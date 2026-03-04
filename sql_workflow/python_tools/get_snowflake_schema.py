@@ -160,7 +160,6 @@ def _get_schema_info(table_names: list[str] | None = None) -> dict[str, Any]:
 
 
 @tool
-@mlflow.trace(name="get_mock_schema", span_type=mlflow.entities.SpanType.TOOL)
 def get_snowflake_schema(table_names: list[str] | None = None) -> dict[str, Any]:
     """Retrieve mock database schema information for sample tables.
 

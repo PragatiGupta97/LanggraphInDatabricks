@@ -75,6 +75,7 @@ def get_generated_sql(messages: list[BaseMessage]) -> str:
             if "SQL:" in content:
                 return content.split("SQL:")[1].split("\n")[0].strip()
             return content
+    
     return ""
 
 

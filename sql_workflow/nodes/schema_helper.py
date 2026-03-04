@@ -14,7 +14,7 @@ from ..python_tools.get_snowflake_schema import (
 from ..state.workflow_state import EnhancedSQLWorkflowState
 
 
-@mlflow.trace(span_type=SpanType.TOOL, name="schema_helper_node")
+@mlflow.trace(span_type=SpanType.AGENT, name="schema_helper_node")
 def schema_helper_node(state: EnhancedSQLWorkflowState) -> dict:
     """Step 1: Retrieve database schema.
 
@@ -29,9 +29,7 @@ def schema_helper_node(state: EnhancedSQLWorkflowState) -> dict:
     print("=" * 80)
 
     try:
-        # Call the tool directly
         schema_info = get_snowflake_schema.invoke({"table_names": None})
-
         print(f"✅ Schema retrieved: {len(str(schema_info))} characters")
 
         # Store schema in ToolMessage for context

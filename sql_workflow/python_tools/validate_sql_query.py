@@ -76,7 +76,6 @@ def _validate_sql(sql_query: str) -> dict[str, Any]:
 
 
 @tool
-@mlflow.trace(name="validate_sql_query", span_type=mlflow.entities.SpanType.TOOL)
 def validate_sql_query(sql_query: str) -> dict[str, Any]:
     """Validate SQL queries for security and best practices before execution.
 
