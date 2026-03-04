@@ -91,17 +91,13 @@ Implementing `ResponsesAgent` correctly ensures:
 - ✅ **Type safety**: Strongly-typed inputs/outputs
 - ✅ **Production ready**: Built-in error handling and formatting
 
-## MLflow Tracing & Logging
+## MLflow Tracing & Observability
 
-This project uses **MLflow autologging** for automatic LangGraph execution tracing, following [Databricks best practices](https://docs.databricks.com/aws/en/mlflow3/genai/tracing/integrations/langgraph).
+This project implements **comprehensive MLflow tracing** for complete observability in Databricks Model Serving, with beautiful hierarchical traces visible in the Databricks playground UI.
 
 ### Automatic Tracing with `mlflow.langchain.autolog()`
 
-Enable once at startup to automatically capture:
-- Complete LangGraph execution flow
-- Node transitions and routing decisions
-- Tool calls and LLM interactions
-- Execution timing and performance
+Enable once at startup to automatically capture LangChain/LLM interactions:
 
 ```python
 import mlflow
@@ -109,24 +105,50 @@ mlflow.langchain.autolog()
 ```
 
 **Where it's enabled:**
-- `deploy-langgraph-to-databricks.ipynb`: Cell 4 (after imports)
-- `sql_workflow_databricks.py`: Orchestrator `__init__` method
+- `deploy-langgraph-to-databricks.ipynb`: Cell 2 (after imports)
 
-### Manual Spans for Detailed Tracking
+### Node-Level Tracing with `@mlflow.trace()` Decorators
 
-Add child spans inside nodes for granular observability:
+Each workflow node is decorated for automatic span creation:
 
 ```python
-with mlflow.start_span(name="operation_name", span_type=SpanType.TOOL) as span:
-    span.set_inputs({"param": value})
-    result = perform_operation()
-    span.set_outputs({"result": result})
+@mlflow.trace(span_type=SpanType.CHAIN, name="sql_generator_node")
+def sql_generator_with_confidence_node(state):
+    # Node logic here
+    return updated_state
 ```
 
-**Examples in codebase:**
-- `schema_helper.py`: Tracks schema retrieval
-- `sql_generator.py`: Tracks LLM generation and confidence parsing
-- `sql_validator.py`: Tracks SQL validation steps
+**Span Types:**
+- `SpanType.AGENT` - High-level agent/orchestrator nodes (schema_helper, sql_validator)
+- `SpanType.CHAIN` - Multi-step orchestration (sql_generator, confidence_router)
+- `SpanType.TOOL` - Individual tool/utility operations (schema retrieval, SQL validation)
+- `SpanType.LLM` - Direct LLM calls (captured automatically by autolog)
+
+**Decorated components:**
+- **Nodes**: `schema_helper.py`, `sql_generator.py`, `sql_validator.py`, `confidence_router.py`
+- **Tools**: `get_snowflake_schema.py`, `generate_sql_query.py`, `validate_sql_query.py`
+
+### Databricks Playground Traces
+
+When deployed, the Databricks playground UI displays:
+- ✅ **Hierarchical spans** - Nested view of workflow execution
+- ✅ **Execution timing** - Performance metrics for each node/tool
+- ✅ **Inputs/outputs** - Automatic capture of parameters and results
+- ✅ **Collapsible sections** - Clean, organized trace visualization
+- ✅ **LLM calls** - Detailed prompts, responses, and token usage
+
+### Trace Hierarchy Example
+
+```
+📊 workflow_execution
+  ├─ 🔧 schema_helper_node (AGENT)
+  │   └─ 🛠️ get_schema_info (TOOL)
+  ├─ 🤖 sql_generator_node (CHAIN)
+  │   └─ 🛠️ generate_sql_with_llm (TOOL)
+  ├─ 🚦 confidence_router_node (CHAIN)
+  └─ ✅ sql_validator_node (AGENT)
+      └─ 🛠️ validate_sql (TOOL)
+```
 
 ### Model Registration
 
